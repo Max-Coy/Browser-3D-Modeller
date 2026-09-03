@@ -3,7 +3,7 @@ import {rotatePoint} from "../Math/quaternion.js";
 import {convert, project, screenPosition} from "../Math/projection.js";
 import {getFaceEdges, edgeKey} from "../Geometry/mesh.js";
 import {drawMoveGizmo} from "../Viewport/gizmo.js";
-import {pointInPolygon, segmentPolygonIntersections, lerp, lerp2D} from "../Math/vector.js";
+import {pointInPolygon, segmentPolygonIntersections, lerp, lerp2D, faceDepthAtPoint} from "../Math/vector.js";
 
 
 const {render, input, geometry, camera, interaction} = state;
@@ -59,23 +59,23 @@ function drawVertices(vertices){
     }
 }
 
-function drawWireframe(edges){
-    // Draw edge outline of mesh
-    for(let i = 0; i < edges.length; i++){
+// function drawWireframe(edges){
+//     // Draw edge outline of mesh
+//     for(let i = 0; i < edges.length; i++){
 
-        const a = geometry.mesh.vertices[edges[i].vertices[0]].position;
-        const b = geometry.mesh.vertices[edges[i].vertices[1]].position;
+//         const a = geometry.mesh.vertices[edges[i].vertices[0]].position;
+//         const b = geometry.mesh.vertices[edges[i].vertices[1]].position;
 
-        const ca = screenPosition(a);
-        const cb = screenPosition(b);
-        if(geometry.selection.edges.has(edges[i].id)){
-            line(ca, cb, render.wireframeWidth, render.selectedElementColor);
-        }else{
-            line(ca, cb, render.wireframeWidth, render.foreground);
-        }
+//         const ca = screenPosition(a);
+//         const cb = screenPosition(b);
+//         if(geometry.selection.edges.has(edges[i].id)){
+//             line(ca, cb, render.wireframeWidth, render.selectedElementColor);
+//         }else{
+//             line(ca, cb, render.wireframeWidth, render.foreground);
+//         }
         
-    }
-}
+//     }
+// }
 
 function drawSegmentedWireframe(segmentedEdges){
     for(const {edge, visibleSegments} of segmentedEdges){
@@ -157,89 +157,151 @@ function clipEdgeAgainstFaces(edge, visibleFaces){
     const rb = rotatePoint(be, camera.orient);
 
     const a = screenPosition(ae);
-    const b = screenPosition(be); //slightly redundant 
+    const b = screenPosition(be);
 
     const cuts = [0, 1];
-    const polygons = [];
 
-    for(const {face} of visibleFaces){
-        const poly = face.vertices.map(id => //Getting vertices of face
-            screenPosition(geometry.mesh.vertices[id].position));
-        polygons.push({
-            poly: poly,
-            depth: averageFaceDepth(face)}); // will reuse later
+    // Store each visible face in both camera and screen space
+    const faces = visibleFaces.map(({face}) => ({
+        face: face,
+        cameraPoints: face.vertices.map(id =>
+            rotatePoint(
+                geometry.mesh.vertices[id].position,
+                camera.orient
+            )
+        ),
+        screenPoints: face.vertices.map(id =>
+            screenPosition(geometry.mesh.vertices[id].position)
+        )
+    }));
 
-        const intersections = segmentPolygonIntersections(a, b, poly);
+    // Add intersections between the edge and visible faces
+    for(const {screenPoints} of faces){
+        const intersections =
+            segmentPolygonIntersections(a, b, screenPoints);
+
         for(const t of intersections){
             cuts.push(t);
         }
     }
 
-    cuts.sort((a,b) => a - b);
+    cuts.sort((a, b) => a - b);
+
     const uniqueCuts = [];
     const eps = 1e-6;
 
     for(const t of cuts){
-        if(uniqueCuts.length === 0 || 
-            Math.abs(t - uniqueCuts[uniqueCuts.length - 1]) > eps){
-                uniqueCuts.push(t);
-            }
+        if(
+            uniqueCuts.length === 0 ||
+            Math.abs(t - uniqueCuts[uniqueCuts.length - 1]) > eps
+        ){
+            uniqueCuts.push(t);
+        }
     }
 
     const visibleSegments = [];
+
     for(let i = 0; i < uniqueCuts.length - 1; i++){
         const t0 = uniqueCuts[i];
         const t1 = uniqueCuts[i + 1];
 
         const midpoint = lerp2D(a, b, (t0 + t1) / 2);
-        const midZ = lerp(ra, rb, (t0 + t1) / 2).z;
-        const segZ = Math.max(ra.z, rb.z);
+        const edgePoint = lerp(ra, rb, (t0 + t1) / 2);
+
         let occluded = false;
-        for(const {poly, depth} of polygons){
-            if(segZ > depth-eps) continue;
-            if(pointInPolygon(midpoint, poly)){
+
+        for(const {screenPoints, cameraPoints} of faces){
+
+            // Find the corresponding point in camera space.
+            const facePoint = {
+                x: edgePoint.x,
+                y: edgePoint.y
+            };
+
+            const faceDepth =
+                faceDepthAtPoint(facePoint, cameraPoints);
+
+            if(faceDepth === null){
+                continue;
+            }
+
+            // Only consider the face if the edge point is inside it.
+            if(!pointInPolygon(midpoint, screenPoints)){
+                continue;
+            }
+
+            // The face is closer to the camera than the edge.
+            if(faceDepth > edgePoint.z + eps){
                 occluded = true;
                 break;
             }
         }
+
         if(!occluded){
             visibleSegments.push([
                 lerp2D(a, b, t0),
                 lerp2D(a, b, t1)
             ]);
         }
-
     }
-    return visibleSegments;
-}   
 
-export function getVisibleEdges(visibleFaces){
+    return visibleSegments;
+} 
+
+export function getVisibleEdges(visibleFaces, visibleVertices){
+    const visibleVertexIds = new Set(
+        visibleVertices.map(vertex => vertex.id)
+    );
+
     const visibleFaceIds = new Set();
 
-    // collect unique parent faces
+    // Collect unique parent faces
     for(const {face} of visibleFaces){
         visibleFaceIds.add(face.id);
     }
+
     const visibleEdgeIds = new Set();
 
-    // pull original mesh edges from parent faces
+    // Collect edges belonging to visible faces
     for(const faceId of visibleFaceIds){
         const meshFace = geometry.mesh.faces[faceId];
+
         for(const [a, b] of getFaceEdges(meshFace)){
-            visibleEdgeIds.add(geometry.mesh.edgeMap.get(edgeKey(a,b)));
+            const edgeId = geometry.mesh.edgeMap.get(edgeKey(a, b));
+
+            if(edgeId !== undefined){
+                visibleEdgeIds.add(edgeId);
+            }
         }
     }
 
-    const visibleEdges = [...visibleEdgeIds].map(id => geometry.mesh.edges[id]);
-    const output = []
-    for(const edge of visibleEdges){
-        output.push({
-            edge: edge,
-            visibleSegments: clipEdgeAgainstFaces(edge, visibleFaces)
+    // Only retain edges whose endpoints are both visible
+    const visibleEdges = [...visibleEdgeIds]
+        .map(id => geometry.mesh.edges[id])
+        .filter(edge => {
+            const [a, b] = edge.vertices;
+
+            return visibleVertexIds.has(a) &&
+                   visibleVertexIds.has(b);
         });
+
+    return visibleEdges.map(edge => ({
+        edge: edge,
+        visibleSegments: clipEdgeAgainstFaces(edge, visibleFaces)
+    }));
+}
+
+function drawWireframe(segmentedEdges){
+    for(const {edge, visibleSegments} of segmentedEdges){
+        const color =
+            geometry.selection.edges.has(edge.id)
+                ? render.selectedElementColor
+                : render.foreground;
+
+        for(const [a, b] of visibleSegments){
+            line(a, b, render.wireframeWidth, color);
+        }
     }
-    
-    return output;
 }
 
 export function getVisibleVertices(visibleFaces){
@@ -250,7 +312,40 @@ export function getVisibleVertices(visibleFaces){
         }
     }
     const visibleVertices = [...visibleVertexIds].map(id => state.geometry.mesh.vertices[id]); // convert ids to vertices
-    return visibleVertices
+    
+    const output = [];
+
+    for(const vertex of visibleVertices){
+        const vertexScreen = screenPosition(vertex.position)
+        const vertexCamera = rotatePoint(vertex.position, camera.orient);
+
+        let obscured = false;
+
+        for(const {face, depth} of visibleFaces){
+            // A face cannot obscure its own vertices
+            if(face.vertices.includes(vertex.id)){
+                continue;
+            }
+
+            // only consider faces closer to the camera
+            if(depth <= vertexCamera.z){
+                continue;
+            }
+
+            const polygon = face.vertices.map(id => screenPosition(geometry.mesh.vertices[id].position));
+            
+            if(pointInPolygon(vertexScreen, polygon)){
+                obscured = true;
+                break;
+            }
+        }
+
+        if(!obscured){
+            output.push(vertex)
+        }
+    }
+
+    return output;
 }
 
 function drawSelectionBox(){
@@ -267,18 +362,37 @@ function drawSelectionBox(){
 
 export function frame() {
         clear()
-        const xx = -0.25
-        
-
+    
         if(render.showFaces){
             const visibleFaces = getVisibleFaces();
-            drawFaces(visibleFaces);
-            if(render.showWireframe) drawSegmentedWireframe(getVisibleEdges(visibleFaces)); // prevents wireframe overlap
-            if(render.showPoints) drawVertices(getVisibleVertices(visibleFaces)); // prevents vertex overlap
+            const visibleVertices = getVisibleVertices(visibleFaces);
+            const visibleEdges = getVisibleEdges(visibleFaces, visibleVertices);
+            const reversedFaces = [...visibleFaces].reverse();
+            
+            drawFaces(reversedFaces); // faces are ordered by height but we should draw the lowest first to prevent clipping
+            
+            if(render.showWireframe) drawWireframe(visibleEdges); // prevents wireframe overlap
+            if(render.showPoints) drawVertices(visibleVertices); // prevents vertex overlap
             
 
         }else{
-            if(render.showWireframe) drawWireframe(geometry.mesh.edges); //draws all wireframes
+            if(render.showWireframe) { //draws all wireframes
+                const segmentedEdges = geometry.mesh.edges.map(edge => {
+                const a = screenPosition(
+                    geometry.mesh.vertices[edge.vertices[0]].position
+                );
+                const b = screenPosition(
+                    geometry.mesh.vertices[edge.vertices[1]].position
+                );
+
+                return {
+                    edge: edge,
+                    visibleSegments: [[a, b]]
+                };
+            });
+
+            drawWireframe(segmentedEdges);
+            } 
             if(render.showPoints) drawVertices(geometry.mesh.vertices); //draws all vertices
         }
         

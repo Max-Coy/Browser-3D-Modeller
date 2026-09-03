@@ -109,14 +109,31 @@ function elementSelect(event){
 
         case "edge":
             let edges;
+            let selectableEdges;
             if(render.showFaces){ // need to use only visible edges
                 const visibleFaces = getVisibleFaces();
-                edges = getVisibleEdges(visibleFaces);
-            }else{
-                edges = geometry.mesh.edges;
+                const visibleVertices = getVisibleVertices(visibleFaces);
+                edges = getVisibleEdges(visibleFaces, visibleVertices);
+                selectableEdges = edges.map(({edge}) => edge);
+            }else{ 
+                edges = geometry.mesh.edges.map(edge => { // need to segment edges for pickedge function
+                    const a = screenPosition(
+                        geometry.mesh.vertices[edge.vertices[0]].position
+                    );
+                    const b = screenPosition(
+                        geometry.mesh.vertices[edge.vertices[1]].position
+                    );
+
+                    return {
+                        edge: edge,
+                        visibleSegments: [[a, b]]
+                    };
+                });
+
+                selectableEdges = geometry.mesh.edges;
             }
             if(mouse.dragMoved){
-                boxSelectEdge(mx, my, edges);
+                boxSelectEdge(mx, my, selectableEdges);
             }else{
                 pickEdge(mx, my, edges);
             }
@@ -143,42 +160,47 @@ function elementSelect(event){
 
 
 function pickEdge(mx, my, edges){
-    //Find The closest Edge in X-Y space to the mouse, if it is within the
-    //threshold distance then add it to the set of selected edges
+    // Find the closest visible edge segment in X-Y space to the mouse.
+    // If it is within the threshold distance, select the corresponding edge.
+
     let closest = null;
     let minDist = Infinity;
-    for(const edge of edges){
-        const u = geometry.mesh.vertices[edge.vertices[0]].position;
-        const v = geometry.mesh.vertices[edge.vertices[1]].position;
 
-        const u_screenPos = screenPosition(u);
-        const v_screenPos = screenPosition(v);
+    for(const {edge, visibleSegments} of edges){
+        for(const [a, b] of visibleSegments){
+            const distSqr = distToSegmentSquared2D(
+                {x: mx, y: my},
+                a,
+                b
+            );
 
-        const distSqr = distToSegmentSquared2D({x: mx, y: my}, u_screenPos, v_screenPos);
-        if(distSqr < minDist){
-            minDist = distSqr;
-            closest = edge.id;
+            if(distSqr < minDist){
+                minDist = distSqr;
+                closest = edge.id;
+            }
         }
     }
 
-    if(minDist < mouse.pickThreshold*mouse.pickThreshold){
-        const isSelected = geometry.selection.edges.has(closest); //clicking selected edge will deselect
-        
-        if(!keyboard.keyDown.ControlLeft){// can multiselect by holding ctrl
-            deselectEdges(); 
+    if(minDist < mouse.pickThreshold * mouse.pickThreshold){
+        const isSelected = geometry.selection.edges.has(closest);
+
+        if(!keyboard.keyDown.ControlLeft){
+            deselectEdges();
+
             if(!isSelected){
-                geometry.selection.edges.add(closest); //selects if wasn't selected
+                geometry.selection.edges.add(closest);
             }
-        }else{ // multi selecting
+        }else{
             if(!isSelected){
-                geometry.selection.edges.add(closest); 
+                geometry.selection.edges.add(closest);
             }else{
-                geometry.selection.vertices.delete(closest); //already selected, deselecting
+                geometry.selection.edges.delete(closest);
             }
         }
-    }else if(!keyboard.keyDown.ControlLeft) { //deselecting if ctrl not held
-        deselectEdges();   
+    }else if(!keyboard.keyDown.ControlLeft){
+        deselectEdges();
     }
+
     requestAnimationFrame(frame);
 }
 
@@ -238,18 +260,6 @@ function pickFace(mx, my, faces){
     requestAnimationFrame(frame);
 }
 
-// if(!keyboard.keyDown.ControlLeft){// can multiselect by holding ctrl
-//     deselectEdges(); 
-//     if(!isSelected){
-//         geometry.selection.edges.add(closest); //selects if wasn't selected
-//     }
-// }else{ // multi selecting
-//     if(!isSelected){
-//         geometry.selection.edges.add(closest); 
-//     }else{
-//         geometry.selection.vertices.delete(closest); //already selected, deselecting
-//     }
-// }
 
 function boxSelectFace(x, y, faces){
     // Selects a face if it's center lies within selection box

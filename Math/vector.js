@@ -120,6 +120,7 @@ export function distToSegmentSquared2D(p, u, v){
 
 export function pointInPolygon(p, polygon){
     let inside = false;
+    let eps = 1e-6; // tolerance for laying on the edge
 
     for(let i = 0; i < polygon.length; i++){
         const j = (i + 1) % polygon.length;
@@ -129,6 +130,21 @@ export function pointInPolygon(p, polygon){
         const xj = polygon[j].x;
         const yj = polygon[j].y;
 
+        // Checking whether p lies on the edge
+        const cross = (p.x - xi) * (yj - yi)
+                    - (p.y - yi) * (xj - xi)
+
+        const onSegment = Math.abs(cross) < eps &&
+                        p.x >= Math.min(xi, xj) - eps &&
+                        p.x <= Math.max(xi, xj) + eps &&
+                        p.y >= Math.min(yi, yj) - eps &&
+                        p.y <= Math.max(yi, yj) + eps;
+
+        if(onSegment){
+            return false; // not including vertices that lay on the edge
+        }
+
+        // Checking if inside polygon
         const crossesY =
             (yi > p.y) !== (yj > p.y);
 
@@ -191,13 +207,16 @@ export function threePointPlane(p0, p1, p2){
     const v = subtract(p1, p0);
     const w = subtract(p2, p0);
 
-    const normal = cross(v,w);
-    if(normal == 0) return null; //ensuring points aren't collinear
+    let normal = cross(v,w);
+    // ensuring points aren't collinear
+    if(normal.x === 0 && normal.y === 0 && normal.z === 0){
+        return null;
+    } 
 
     
     normal = normalize(normal);
 
-    const d = dot(normal, p0);
+    const d = -dot(normal, p0);
     return{a: normal.x,
            b: normal.y,
            c: normal.z,
@@ -209,3 +228,18 @@ export function pointInPlane(p, plane){
     return (plane.a * p.x + plane.b * p.y + plane.d * p.z + plane.d) == 0;
 }
 
+export function faceDepthAtPoint(point, cameraPoints){
+    const plane = threePointPlane(
+        cameraPoints[0],
+        cameraPoints[1],
+        cameraPoints[2]
+    );
+
+    if(!plane || Math.abs(plane.c) < 1e-8){
+        return null;
+    }
+
+    return -(plane.a * point.x +
+             plane.b * point.y +
+             plane.d) / plane.c;
+}
