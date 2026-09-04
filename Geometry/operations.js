@@ -76,6 +76,39 @@ export function updateFace(face){
     }
 }
 
+export function moveSelectedFaces(dx, dy, dz){
+    const affectedVertices = new Set();
+
+    for(const faceId of geometry.selection.faces){
+        const face = geometry.mesh.faces[faceId];
+
+        for(const vertexId of face.vertices){
+            affectedVertices.add(vertexId);
+        }
+    }
+
+    for(const vertexId of affectedVertices){
+        const p = geometry.mesh.vertices[vertexId].position;
+
+        p.x += dx;
+        p.y += dy;
+        p.z += dz;
+    }
+
+    const oldFaces = getFacesWithVertices(
+        [...affectedVertices],
+        geometry.mesh.faces
+    );
+
+    for(const faceId of oldFaces){
+        updateFace(geometry.mesh.faces[faceId]);
+    }
+
+    updateGizmoCenter();
+
+    requestAnimationFrame(frame);
+}
+
 export function moveDrag(mx, my){
     const axis = interaction.activeAxis;
     if(!axis) return;
@@ -106,11 +139,14 @@ export function moveDrag(mx, my){
     const dz = axis.dir.z * dr;
 
     if(state.geometry.selection.mode === "vertex"){
-         moveSelectedVertices(dx, dy, dz);
+        moveSelectedVertices(dx, dy, dz);
     }
-   else if(state.geometry.selection.mode === "edge"){
+    else if(state.geometry.selection.mode === "edge"){
         moveSelectedEdges(dx, dy, dz);
-   }
+    }
+    else if(geometry.selection.mode === "face"){
+        moveSelectedFaces(dx, dy, dz);
+    }
 }
 
 

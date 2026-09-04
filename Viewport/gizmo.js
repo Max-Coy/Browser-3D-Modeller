@@ -220,6 +220,37 @@ export function updateGizmoCenter(){
             z: (a.z + b.z) / 2
         };
     }
+    else if(geometry.selection.mode === "face"){
+    const faces = geometry.selection.faces;
+
+    if(faces.size === 0){
+        interaction.gizmoCenter = null;
+        return;
+    }
+
+    const firstFaceId = faces.values().next().value;
+    const face = geometry.mesh.faces[firstFaceId];
+
+    let x = 0;
+    let y = 0;
+    let z = 0;
+
+    for(const vertexId of face.vertices){
+        const p = geometry.mesh.vertices[vertexId].position;
+
+        x += p.x;
+        y += p.y;
+        z += p.z;
+    }
+
+    const count = face.vertices.length;
+
+    interaction.gizmoCenter = {
+        x: x / count,
+        y: y / count,
+        z: z / count
+    };
+}
 }
 
 export function getSelectionCenter(){}
