@@ -187,16 +187,39 @@ export function pickGizmoAxis(mx, my){
 
 
 export function updateGizmoCenter(){
-    const verts = geometry.selection.vertices;
+    if(geometry.selection.mode === "vertex"){
+        const verts = geometry.selection.vertices;
 
-    if(verts.size === 0){
-        interaction.gizmoCenter = null;
-        return;
+        if(verts.size === 0){
+            interaction.gizmoCenter = null;
+            return;
+        }
+
+        const firstVertexId = verts.values().next().value;
+
+        interaction.gizmoCenter =
+            geometry.mesh.vertices[firstVertexId].position;
     }
+    else if(geometry.selection.mode === "edge"){
+        const edges = geometry.selection.edges;
 
-    const firstVertexId = verts.values().next().value;
-    
-    interaction.gizmoCenter = geometry.mesh.vertices[firstVertexId].position;
+        if(edges.size === 0){
+            interaction.gizmoCenter = null;
+            return;
+        }
+
+        const firstEdgeId = edges.values().next().value;
+        const edge = geometry.mesh.edges[firstEdgeId];
+
+        const a = geometry.mesh.vertices[edge.vertices[0]].position;
+        const b = geometry.mesh.vertices[edge.vertices[1]].position;
+
+        interaction.gizmoCenter = {
+            x: (a.x + b.x) / 2,
+            y: (a.y + b.y) / 2,
+            z: (a.z + b.z) / 2
+        };
+    }
 }
 
 export function getSelectionCenter(){}

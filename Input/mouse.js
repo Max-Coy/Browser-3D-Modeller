@@ -151,9 +151,10 @@ function elementSelect(event){
     mouse.leftIsDragging = false;
     mouse.selectionBox = null;
 
-    if(geometry.selection.mode == "vertex"){
-        updateGizmoCenter();
-    }
+    if(geometry.selection.mode == "vertex" ||
+       geometry.selection.mode == "edge"){
+    updateGizmoCenter();
+}
 
     requestAnimationFrame(frame);
 }
