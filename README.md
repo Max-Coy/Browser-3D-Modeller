@@ -1,6 +1,6 @@
-# Browser-Based 3D Modeller
+# MaxForm
 
-A lightweight browser-based 3D modelling application written in JavaScript. This project was created as an exploration of interactive graphics programming, implementing core modelling functionality from scratch without relying on external 3D engines.
+A browser-based 3D wireframe modeler built from scratch with JavaScript.
 
 **This project is still still currently under progress**
 
