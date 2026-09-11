@@ -126,3 +126,16 @@ export function getFacesWithVertices(vertexIds, faces){
     }
     return faceIds;
 }
+
+export function addVertex(position){
+    const mesh = state.geometry.mesh;
+
+    const vertexId = mesh.vertices.length;
+
+    mesh.vertices.push({
+        id: vertexId,
+        position: position
+    });
+
+    return vertexId;
+}

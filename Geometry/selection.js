@@ -1,6 +1,7 @@
 import {state} from "../state.js";
 import {edgeKey} from "./mesh.js";
-import {updateGizmoCenter} from "../viewport/gizmo.js";
+import {updateGizmoCenter} from "../Viewport/gizmo.js";
+import {exitEditing} from "./editing.js";
 
 const {geometry} = state;
 const select = geometry.selection;
@@ -49,6 +50,7 @@ export function convertSelection(oldMode, newMode){
     }
 
     updateGizmoCenter();
+    exitEditing();
 }
 
 export function deselectVertices(){

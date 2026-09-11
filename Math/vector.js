@@ -118,6 +118,36 @@ export function distToSegmentSquared2D(p, u, v){
     return dot2(d, d);
 }
 
+export function projectOntoSegment2D(p, u, v){
+    const uv = subtract2(v, u);
+    const up = subtract2(p, u);
+
+    const len2 = dot2(uv, uv);
+
+    if(len2 === 0){
+        return {
+            point: {x: u.x, y: u.y},
+            t: 0,
+            distanceSquared: dot2(up, up)
+        };
+    }
+
+    const t = dot2(up, uv) / len2;
+
+    const point = {
+        x: u.x + t * uv.x,
+        y: u.y + t * uv.y
+    };
+
+    const d = subtract2(p, point);
+
+    return {
+        point: point,
+        t: t,
+        distanceSquared: dot2(d, d)
+    };
+}
+
 export function pointInPolygon(p, polygon){
     let inside = false;
     let eps = 1e-6; // tolerance for laying on the edge

@@ -6,6 +6,9 @@ import {screenPosition} from "../Math/projection.js";
 import {deselectVertices, deselectEdges, deselectFaces, hasSelection} from "../Geometry/selection.js";
 import {pickGizmoAxis, updateGizmoCenter} from "../Viewport/gizmo.js";
 import {moveDrag} from "../Geometry/operations.js";
+import {cut} from "../Geometry/editing.js";
+import {updateSceneTree} from "../UI/sceneTree.js";
+
 const {render, input, geometry, camera, interaction} = state;
 const mouse = input.mouse;
 const keyboard = input.keyboard;
@@ -21,15 +24,26 @@ export function setupMouse(){
     render.screen.addEventListener("mousemove", handleMouseMove);
 }
 
+function getCanvasMousePosition(event) {
+    const rect = render.screen.getBoundingClientRect();
+
+    const scaleX = render.screen.width / rect.width;
+    const scaleY = render.screen.height / rect.height;
+
+    return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+    };
+}
+
 function handleMouseDown(event){
     switch(event.button){
         case 0: { //Left Mouse Down
             mouse.leftIsDragging = true;
             mouse.dragMoved = false; 
             event.preventDefault();
-            const rect = render.screen.getBoundingClientRect();
-            const mx = event.clientX - rect.left;
-            const my = event.clientY - rect.top;
+            const { x: mx, y: my } = getCanvasMousePosition(event);
+
             mouse.lastLeft.x = mx;
             mouse.lastLeft.y = my;
             if(hasSelection()) interaction.activeAxis = pickGizmoAxis(mx, my);
@@ -65,11 +79,10 @@ function handleMouseUp(event){
 function handleMouseMove(event){
     if(mouse.leftIsDragging){ 
         mouse.dragMoved = true; // Disables click selection
-        const rect = render.screen.getBoundingClientRect();
-        const mx = event.clientX - rect.left;
-        const my = event.clientY - rect.top;
+        const { x: mx, y: my } = getCanvasMousePosition(event);
         if(interaction.activeAxis){ // we are moving with gizmo
             moveDrag(mx, my);
+            updateSceneTree();
         }else{ //we are drag selecting
             mouse.selectionBox = { //update selection box
                 x1: mouse.lastLeft.x,
@@ -88,9 +101,19 @@ function handleMouseMove(event){
 }
 
 function elementSelect(event){
-    const rect = render.screen.getBoundingClientRect();
-    const mx = event.clientX - rect.left;
-    const my = event.clientY - rect.top;
+    const { x: mx, y: my } = getCanvasMousePosition(event);
+
+    if(geometry.editing.mode === "cut"){
+        cut({x: mx, y: my, z: 0});
+
+        mouse.leftIsDragging = false;
+        mouse.selectionBox = null;
+
+        requestAnimationFrame(frame);
+        updateSceneTree();
+        return;
+    }
+
     switch(geometry.selection.mode){
         case "vertex":
             let vertices;
@@ -367,7 +390,7 @@ function mouseRotate(x, y){
     mouse.lastRight.y = y;
 
     const yawAxis = {x:0, y:1, z:0};
-    const rightAxis = normalize(rotatePoint({x:1, y:0, z:0}, camera.orient));
+    const rightAxis = normalize(rotatePoint({x:1, y:0, z:0}, {w:1, x:0, y:0, z:0})); 
 
     const qYaw = quatFromAxisAngle(yawAxis, -dx * mouse.sensitivity);
     const qPitch = quatFromAxisAngle(rightAxis, -dy * mouse.sensitivity);

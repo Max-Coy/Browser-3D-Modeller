@@ -26,8 +26,6 @@ Viewport/   Viewport tools and gizmos
 
 ## Planned Features
 
-* Improve edge rendering
-* Support moving selected edges and faces
 * Create and delete vertices, edges, and faces
 * General polish and usability improvements
 

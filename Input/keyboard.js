@@ -4,6 +4,8 @@ import {normalize} from "../Math/vector.js";
 import {quatFromAxisAngle, quatMultiply, quatNormalize, rotatePoint} from "../Math/quaternion.js";
 import {deselectVertices, deselectEdges, deselectFaces} from "../Geometry/selection.js";
 import {convertSelection} from "../Geometry/selection.js";
+import {exitEditing, enterCutMode} from "../Geometry/editing.js";
+
 const {render, input, camera, geometry} = state;
 const keyboard = input.keyboard;
 const select = geometry.selection;
@@ -35,6 +37,12 @@ function handleKeyDown(event){
             break;
         case "Digit3":
             convertSelection(select.mode, "face");
+            break;
+        case "KeyK": // Enter knife/cutting tool
+            enterCutMode();
+            break;
+        case "Escape":
+            exitEditing();
             break;
     }
     keyRotate(); // Attempt to rotate viewport if wasdqe are held down

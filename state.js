@@ -47,6 +47,9 @@ export const state = {
             vertices: new Set(),
             edges: new Set(),
             faces: new Set()
+        },
+        editing: {
+            mode: "none" // "cut", "extrude", "delete", "merge", "link"
         }
     },
 

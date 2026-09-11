@@ -9,6 +9,7 @@ import {frame} from "./Render/renderer.js";
 import {setupMouse} from "./Input/mouse.js";
 import {setupKeyboard} from "./Input/keyboard.js";
 import {makeBox} from "./Geometry/mesh.js";
+import {initSceneTree} from "./UI/sceneTree.js";
 
 function init() {
     state.render.screen = document.getElementById("screen");
@@ -23,6 +24,9 @@ function init() {
     setupKeyboard();
 
     console.log(state);
+
+    initSceneTree();
+
     requestAnimationFrame(frame);
 }
 

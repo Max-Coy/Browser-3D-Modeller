@@ -59,24 +59,6 @@ function drawVertices(vertices){
     }
 }
 
-// function drawWireframe(edges){
-//     // Draw edge outline of mesh
-//     for(let i = 0; i < edges.length; i++){
-
-//         const a = geometry.mesh.vertices[edges[i].vertices[0]].position;
-//         const b = geometry.mesh.vertices[edges[i].vertices[1]].position;
-
-//         const ca = screenPosition(a);
-//         const cb = screenPosition(b);
-//         if(geometry.selection.edges.has(edges[i].id)){
-//             line(ca, cb, render.wireframeWidth, render.selectedElementColor);
-//         }else{
-//             line(ca, cb, render.wireframeWidth, render.foreground);
-//         }
-        
-//     }
-// }
-
 function drawSegmentedWireframe(segmentedEdges){
     for(const {edge, visibleSegments} of segmentedEdges){
         let color = (geometry.selection.edges.has(edge.id)) ? render.selectedElementColor : render.foreground;

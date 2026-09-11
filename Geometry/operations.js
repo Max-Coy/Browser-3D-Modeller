@@ -5,7 +5,7 @@ import {line, point} from "../Render/renderer.js";
 import {dot, distToSegmentSquared2D, threePointPlane, pointInPlane} from "../Math/vector.js";
 import {frame} from "../Render/renderer.js";
 import {getFacesWithVertices, computeFaceNormal} from "./mesh.js";
-import {updateGizmoCenter} from "../viewport/gizmo.js";
+import {updateGizmoCenter} from "../Viewport/gizmo.js";
 
 const {camera, interaction, input, geometry} = state;
 const mouse = input.mouse;
