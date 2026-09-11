@@ -15,8 +15,7 @@ function init() {
     state.render.screen = document.getElementById("screen");
     state.render.ctx = state.render.screen.getContext("2d");
     
-    state.render.screen.width = state.render.width;
-    state.render.screen.height = state.render.height;
+    resizeCanvas();
 
     makeBox(0, 0, 0, 0.25, 0.25, 0.25);
 
@@ -30,4 +29,13 @@ function init() {
     requestAnimationFrame(frame);
 }
 
+function resizeCanvas() {
+    state.render.width = window.innerWidth;
+    state.render.height = window.innerHeight;
+
+    state.render.screen.width = state.render.width;
+    state.render.screen.height = state.render.height;
+}
+
 init();
+window.addEventListener("resize", resizeCanvas);

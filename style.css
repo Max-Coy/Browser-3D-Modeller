@@ -16,8 +16,8 @@ body {
 }
 
 #screen {
-    width: min(100vh, 100vw);
-    height: min(100vh, 100vw);
+    width: 100vw;
+    height: 100vh;
     display: block;
 }
 

@@ -32,7 +32,8 @@ export const state = {
 
     camera: {
         orient: {w:1, x:0, y:0, z:0}, // current rotation of viewport
-        dir: {x: 0, y:0, z: 1} // Location of camera
+        dir: {x: 0, y:0, z: 1}, // Location of camera
+        zoom: 1
     },
 
     geometry: {

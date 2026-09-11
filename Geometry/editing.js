@@ -43,10 +43,16 @@ export function cut(position){
         edge => edge.id === edgeId
     );
 
+    const selectedEdges = [...selection.edges]
+        .map(edgeId =>
+            geometry.mesh.edges.find(edge => edge.id === edgeId)
+        )
+        .filter(edge => edge !== undefined);
+
     const closest = findClosestEdge(
         position.x,
         position.y,
-        [edge],
+        selectedEdges,
         10
     );
 
