@@ -21,6 +21,7 @@ Geometry/   Mesh data structures and editing operations
 Input/      Mouse and keyboard controls
 Math/       Vector, quaternion, and projection utilities
 Render/     Rendering pipeline
+UI/         User Inteface
 Viewport/   Viewport tools and gizmos
 ```
 
