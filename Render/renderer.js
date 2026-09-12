@@ -39,8 +39,8 @@ function drawVertices(vertices){
     // Draw All Vertices in the scene (no z-ordering)
     const verts = [];
     for(const vertex of vertices){
+        const p = screenPosition(vertex.position);
         const rp = rotatePoint(vertex.position, camera.orient);
-        const p = convert(project(rp), render.screen.width, render.screen.height);
         const selected = geometry.selection.vertices.has(vertex.id)
         verts.push({p:p,
                     selected: selected,

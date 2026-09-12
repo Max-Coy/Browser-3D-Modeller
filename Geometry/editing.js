@@ -37,12 +37,6 @@ export function cut(position){
         return;
     }
 
-    const edgeId = selection.edges.values().next().value;
-
-    const edge = geometry.mesh.edges.find(
-        edge => edge.id === edgeId
-    );
-
     const selectedEdges = [...selection.edges]
         .map(edgeId =>
             geometry.mesh.edges.find(edge => edge.id === edgeId)
@@ -60,6 +54,7 @@ export function cut(position){
         return;
     }
 
+    const edge = closest.edge;
     const t = closest.t;
 
     const u = geometry.mesh.vertices[edge.vertices[0]].position;

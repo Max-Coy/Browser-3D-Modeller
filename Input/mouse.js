@@ -21,7 +21,13 @@ export function setupMouse(){
     render.screen.addEventListener("selectstart", (e) => e.preventDefault()); //Disabling default right click
     render.screen.addEventListener("mousedown", handleMouseDown);
     render.screen.addEventListener("mouseup", handleMouseUp);
+    render.screen.addEventListener("wheel", handleMouseScroll)
     render.screen.addEventListener("mousemove", handleMouseMove);
+}
+
+function handleMouseScroll(event) {
+    camera.zoom = Math.max(0.1, camera.zoom - (event.deltaY * mouse.zoomSensitivity));
+    requestAnimationFrame(frame);
 }
 
 function getCanvasMousePosition(event) {

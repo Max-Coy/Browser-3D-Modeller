@@ -9,18 +9,20 @@ export function project({x, y, z}){
     }
 }
 
-export function convert(p, width, height){
+export function convert(p, width, height, zoom = 1){
     //Converts Pixels on screen to be from [-1,1] in x-y
     //plane with origin in the center (inverts y-axis)
+
     return {
-        x : (p.x + 1)/2 * width,
-        y :(1 - (p.y + 1)/2) * height
-    }
+        x: p.x * zoom + width / 2,
+        y: -p.y * zoom + height / 2
+    };
 }
 
 export function screenPosition(p){
     // Converts a point from true position to screen position
     return convert(project(rotatePoint(p, state.camera.orient)),
-                   state.render.screen.width,
-                   state.render.screen.height);
+                    state.render.screen.width,
+                    state.render.screen.height,
+                    state.camera.zoom);
 }

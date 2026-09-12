@@ -33,7 +33,7 @@ export const state = {
     camera: {
         orient: {w:1, x:0, y:0, z:0}, // current rotation of viewport
         dir: {x: 0, y:0, z: 1}, // Location of camera
-        zoom: 1
+        zoom: 600
     },
 
     geometry: {
@@ -77,7 +77,7 @@ export const state = {
         mouse: {
             sensitivity: 0.005, // when drag rotating
             pickThreshold: 25, // pixel distance for clicking on vertices
-
+            zoomSensitivity: 0.5,
             rightIsDragging: false,
             leftIsDragging: false,
             dragMoved: false,

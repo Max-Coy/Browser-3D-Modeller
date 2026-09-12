@@ -15,8 +15,6 @@ function init() {
     state.render.screen = document.getElementById("screen");
     state.render.ctx = state.render.screen.getContext("2d");
     
-    resizeCanvas();
-
     makeBox(0, 0, 0, 0.25, 0.25, 0.25);
 
     setupMouse();
@@ -26,7 +24,7 @@ function init() {
 
     initSceneTree();
 
-    requestAnimationFrame(frame);
+    resizeCanvas();
 }
 
 function resizeCanvas() {
@@ -35,6 +33,8 @@ function resizeCanvas() {
 
     state.render.screen.width = state.render.width;
     state.render.screen.height = state.render.height;
+
+    frame();
 }
 
 init();
