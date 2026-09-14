@@ -1,11 +1,12 @@
 import {state} from "../state.js";
-import {addVertex, addEdge, computeFaceNormal, edgeKey} from "./mesh.js";
+import {addVertex, addEdge, computeFaceNormal, edgeKey, getFaceEdges} from "./mesh.js";
 import {updateFace} from "./operations.js";
 import {updateGizmoCenter} from "../Viewport/gizmo.js";
 import {screenPosition} from "../Math/projection.js";
-import {projectOntoSegment2D} from "../Math/vector.js";
+import {projectOntoSegment2D, pointInPolygon, faceDepthAtPoint} from "../Math/vector.js";
+import {rotatePoint, quatConjugate} from "../Math/quaternion.js";
 
-const {camera, interaction, input, geometry} = state;
+const {camera, interaction, input, geometry, render} = state;
 const selection = geometry.selection;
 
 export function exitEditing() { 
@@ -14,21 +15,72 @@ export function exitEditing() {
 
     updateGizmoCenter();
 }
+
 export function enterCutMode() {
-    if(selection.mode !== "edge"){
+    if(selection.mode === "edge"){
+        enterEdgeCutMode();
+    }
+    else if(selection.mode === "face") {
+        enterFaceCutMode();
+    }
+    else {
         return;
     }
+}
 
+function enterEdgeCutMode() {
     // Keep only the first edge selected and discard the rest
     const firstEdge = selection.edges.values().next().value;
 
     selection.edges.clear();
 
-    if(firstEdge !== undefined){
-        selection.edges.add(firstEdge);
+    if(firstEdge === undefined){
+        return;
     }
 
+    selection.edges.add(firstEdge);
+
     geometry.editing.mode = "cut";
+
+    interaction.gizmoCenter = null;
+}
+
+function enterFaceCutMode() {
+    const firstFace = selection.faces.values().next().value;
+
+    selection.faces.clear();
+
+    if(firstFace === undefined){
+        return;
+    }
+
+    selection.faces.add(firstFace);
+
+    const face = geometry.mesh.faces.find(
+        face => face.id === firstFace
+    );
+
+    if(!face){
+        return;
+    }
+
+    const faceEdgePairs = getFaceEdges(face);
+
+    selection.edges.clear();
+
+    for(const [a, b] of faceEdgePairs){
+        const key = edgeKey(a, b);
+        const edge = geometry.mesh.edgeMap.get(key);
+
+        if(edge){
+            selection.edges.add(edge.id);
+        }
+    }
+
+    geometry.editing.mode = "faceCut";
+    geometry.editing.faceCutVertices = [];
+    geometry.editing.faceCutEdges = [];
+    geometry.editing.previewPosition = null;
 
     interaction.gizmoCenter = null;
 }
@@ -182,9 +234,113 @@ function insertVertexIntoFace(face, a, b, vertexId){
     }
 }
 
-// enterCutMode()
-// exitEditMode()
-// cutEdge()
+export function getFaceCutPosition(position){
+    if(geometry.editing.mode !== "faceCut"){
+        return null;
+    }
+
+    const faceCutVertices = geometry.editing.faceCutVertices;
+
+    const face = geometry.mesh.faces.find(
+        face => face.id === selection.faces.values().next().value
+    );
+
+    if(!face){
+        return null;
+    }
+
+    const faceEdgePairs = getFaceEdges(face);
+
+    const faceEdges = faceEdgePairs
+        .map(([a, b]) => {
+            const edgeId = geometry.mesh.edgeMap.get(edgeKey(a, b));
+
+            if(edgeId === undefined){
+                return undefined;
+            }
+
+            return geometry.mesh.edges[edgeId];
+        })
+        .filter(edge => edge !== undefined);
+
+    const closest = findClosestEdge(
+        position.x,
+        position.y,
+        faceEdges,
+        geometry.editing.cutThreshold
+    );
+
+    if(closest){
+        const previous = faceCutVertices.at(-1);
+
+        // Don't allow two consecutive points on the same edge
+        if(!previous || previous.edge?.id !== closest.edge.id){
+            const edge = closest.edge;
+            const t = closest.t;
+
+            const u = geometry.mesh.vertices[edge.vertices[0]].position;
+            const v = geometry.mesh.vertices[edge.vertices[1]].position;
+
+            const cutPosition = {
+                x: u.x + t * (v.x - u.x),
+                y: u.y + t * (v.y - u.y),
+                z: u.z + t * (v.z - u.z)
+            };
+
+            return {
+                position: cutPosition,
+                edge: edge
+            };
+        }
+    }
+
+    if(faceCutVertices.length === 0){
+        return null;
+    }
+
+    // No edge was close enough and/or valid, so check whether
+    // the mouse is inside the face.
+    const cameraPoints = face.vertices.map(vertexId =>
+        rotatePoint(
+            geometry.mesh.vertices[vertexId].position,
+            camera.orient
+        )
+    );
+
+    const polygon = cameraPoints.map(point => ({
+        x: point.x * camera.zoom + render.screen.width / 2,
+        y: -point.y * camera.zoom + render.screen.height / 2
+    }));
+
+    if(!pointInPolygon(position, polygon)){
+        return null;
+    }
+
+    const cameraPoint = {
+        x: (position.x - render.screen.width / 2) / camera.zoom,
+        y: -(position.y - render.screen.height / 2) / camera.zoom,
+        z: 0
+    };
+
+    cameraPoint.z = faceDepthAtPoint(
+        cameraPoint,
+        cameraPoints
+    );
+
+    if(cameraPoint.z === null){
+        return null;
+    }
+
+    const worldPoint = rotatePoint(
+        cameraPoint,
+        quatConjugate(camera.orient)
+    );
+
+    return {
+        position: worldPoint,
+        edge: null
+    };
+}
 // extrudeFace()
 // deleteVertex()
 // deleteEdge()

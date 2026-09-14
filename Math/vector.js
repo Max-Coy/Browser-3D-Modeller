@@ -254,8 +254,13 @@ export function threePointPlane(p0, p1, p2){
 }
 
 export function pointInPlane(p, plane){
-    // Checks to see if a point lies within a 3d plane
-    return (plane.a * p.x + plane.b * p.y + plane.d * p.z + plane.d) == 0;
+    const distance =
+        plane.a * p.x +
+        plane.b * p.y +
+        plane.c * p.z +
+        plane.d;
+
+    return Math.abs(distance) < 1e-6;
 }
 
 export function faceDepthAtPoint(point, cameraPoints){

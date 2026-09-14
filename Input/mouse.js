@@ -6,7 +6,7 @@ import {screenPosition} from "../Math/projection.js";
 import {deselectVertices, deselectEdges, deselectFaces, hasSelection} from "../Geometry/selection.js";
 import {pickGizmoAxis, updateGizmoCenter} from "../Viewport/gizmo.js";
 import {moveDrag} from "../Geometry/operations.js";
-import {cut, getCutPosition} from "../Geometry/editing.js";
+import {cut, getCutPosition, getFaceCutPosition} from "../Geometry/editing.js";
 import {updateSceneTree} from "../UI/sceneTree.js";
 
 const {render, input, geometry, camera, interaction} = state;
@@ -117,6 +117,20 @@ function handleMouseMove(event){
 
         requestAnimationFrame(frame);
     }
+
+    if(geometry.editing.mode === "faceCut" && !mouse.leftIsDragging){
+
+        const cut = getFaceCutPosition({
+            x: mx,
+            y: my
+        });
+
+        geometry.editing.previewPosition = cut
+            ? cut.position
+            : null;
+
+        requestAnimationFrame(frame);
+    }
 }
 
 function elementSelect(event){
@@ -130,6 +144,21 @@ function elementSelect(event){
 
         requestAnimationFrame(frame);
         updateSceneTree();
+        return;
+    }
+    else if(geometry.editing.mode === "faceCut") {
+        const cut = getFaceCutPosition({x: mx, y: my})
+
+        mouse.leftIsDragging = false;
+        mouse.selectionBox = null;
+
+        if(cut){
+            geometry.editing.faceCutVertices.push(cut);
+            geometry.editing.previewPosition = null;
+
+            requestAnimationFrame(frame);
+        }
+
         return;
     }
 

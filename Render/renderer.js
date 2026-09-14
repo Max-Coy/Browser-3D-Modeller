@@ -67,14 +67,63 @@ function drawPreviewVertex(position){
     point(p);
 }
 
-function drawSegmentedWireframe(segmentedEdges){
-    for(const {edge, visibleSegments} of segmentedEdges){
-        let color = (geometry.selection.edges.has(edge.id)) ? render.selectedElementColor : render.foreground;
-        for(const [a, b] of visibleSegments){
-            line(a, b, render.wireframeWidth, color);
-        }
+function drawFaceCutPreview(){
+
+    const points = geometry.editing.faceCutVertices;
+
+    if(points.length === 0){
+        return;
+    }
+
+    // Draw lines between committed points
+    for(let i = 1; i < points.length; i++){
+
+        const p1 = screenPosition(points[i - 1].position);
+        const p2 = screenPosition(points[i].position);
+
+        line(
+            p1,
+            p2,
+            render.wireframeWidth,
+            render.previewEdgeColor
+        );
+    }
+
+    // Draw line from the last committed point to the hover point
+    if(geometry.editing.previewPosition){
+
+        const lastPoint = points.at(-1);
+
+        const p1 = screenPosition(lastPoint.position);
+        const p2 = screenPosition(geometry.editing.previewPosition);
+
+        line(
+            p1,
+            p2,
+            render.wireframeWidth,
+            render.previewEdgeColor
+        );
+    }
+
+    // Draw committed points
+    for(const pointData of points){
+
+        const p = screenPosition(pointData.position);
+
+        render.ctx.fillStyle = render.previewVertexColor;
+
+        point(p);
     }
 }
+
+// function drawSegmentedWireframe(segmentedEdges){
+//     for(const {edge, visibleSegments} of segmentedEdges){
+//         let color = (geometry.selection.edges.has(edge.id)) ? render.selectedElementColor : render.foreground;
+//         for(const [a, b] of visibleSegments){
+//             line(a, b, render.wireframeWidth, color);
+//         }
+//     }
+// }
 
 function isFaceVisible(face){
     // return true;
@@ -390,6 +439,10 @@ export function frame() {
 
         if(interaction.gizmoCenter){
             drawMoveGizmo(interaction.gizmoCenter);
+        }
+
+        if(geometry.editing.mode === "faceCut"){
+            drawFaceCutPreview();
         }
 
         if(geometry.editing.previewPosition){
