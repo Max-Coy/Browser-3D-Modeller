@@ -10,6 +10,7 @@ const selection = geometry.selection;
 
 export function exitEditing() { 
     geometry.editing.mode = "none";
+    geometry.editing.previewPosition = null;
 
     updateGizmoCenter();
 }
@@ -33,8 +34,23 @@ export function enterCutMode() {
 }
 
 export function cut(position){
-    if(geometry.editing.mode !== "cut"){
+    
+    const cut = getCutPosition(position);
+
+    if(!cut){
         return;
+    }
+
+    const vertexId = addVertex(cut.position);
+
+    const newEdgeId = splitEdge(cut.edge, vertexId);
+
+    selection.edges.add(newEdgeId);
+}
+
+export function getCutPosition(position){
+    if(geometry.editing.mode !== "cut"){
+        return null;
     }
 
     const selectedEdges = [...selection.edges]
@@ -47,11 +63,11 @@ export function cut(position){
         position.x,
         position.y,
         selectedEdges,
-        10
+        geometry.editing.cutThreshold
     );
 
     if(!closest){
-        return;
+        return null;
     }
 
     const edge = closest.edge;
@@ -66,10 +82,10 @@ export function cut(position){
         z: u.z + t * (v.z - u.z)
     };
 
-    const vertexId = addVertex(cutPosition);
-
-    const newEdgeId = splitEdge(edge, vertexId);
-    selection.edges.add(newEdgeId);
+    return {
+        position: cutPosition,
+        edge: edge
+    };
 }
 
 export function findClosestEdge(mx, my, edges, threshold){

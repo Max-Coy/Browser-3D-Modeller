@@ -6,7 +6,7 @@ import {screenPosition} from "../Math/projection.js";
 import {deselectVertices, deselectEdges, deselectFaces, hasSelection} from "../Geometry/selection.js";
 import {pickGizmoAxis, updateGizmoCenter} from "../Viewport/gizmo.js";
 import {moveDrag} from "../Geometry/operations.js";
-import {cut} from "../Geometry/editing.js";
+import {cut, getCutPosition} from "../Geometry/editing.js";
 import {updateSceneTree} from "../UI/sceneTree.js";
 
 const {render, input, geometry, camera, interaction} = state;
@@ -83,9 +83,11 @@ function handleMouseUp(event){
 }
 
 function handleMouseMove(event){
+    const { x: mx, y: my } = getCanvasMousePosition(event);
+
     if(mouse.leftIsDragging){ 
         mouse.dragMoved = true; // Disables click selection
-        const { x: mx, y: my } = getCanvasMousePosition(event);
+        
         if(interaction.activeAxis){ // we are moving with gizmo
             moveDrag(mx, my);
             updateSceneTree();
@@ -100,9 +102,20 @@ function handleMouseMove(event){
         }
         
     }
+    
     if(mouse.rightIsDragging) //we are drag rotating
     {
         mouseRotate(event.clientX, event.clientY);
+    }
+
+    if(geometry.editing.mode === "cut" && !mouse.leftIsDragging){
+        const cut = getCutPosition({x: mx, y: my});
+
+        geometry.editing.previewPosition = cut 
+            ? cut.position
+            : null;
+
+        requestAnimationFrame(frame);
     }
 }
 

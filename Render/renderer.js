@@ -59,6 +59,14 @@ function drawVertices(vertices){
     }
 }
 
+function drawPreviewVertex(position){
+    const p = screenPosition(position);
+
+    render.ctx.fillStyle = render.previewVertexColor;
+
+    point(p);
+}
+
 function drawSegmentedWireframe(segmentedEdges){
     for(const {edge, visibleSegments} of segmentedEdges){
         let color = (geometry.selection.edges.has(edge.id)) ? render.selectedElementColor : render.foreground;
@@ -382,5 +390,9 @@ export function frame() {
 
         if(interaction.gizmoCenter){
             drawMoveGizmo(interaction.gizmoCenter);
+        }
+
+        if(geometry.editing.previewPosition){
+            drawPreviewVertex(geometry.editing.previewPosition);
         }
 }

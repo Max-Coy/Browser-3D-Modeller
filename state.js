@@ -27,7 +27,8 @@ export const state = {
 
         vertexSize: 6,
         selectedElementColor: "yellow",
-        deselectedVertexColor: "blue"
+        deselectedVertexColor: "blue",
+        previewVertexColor: "rgba(81, 120, 238, 0.5)"
     },
 
     camera: {
@@ -50,7 +51,9 @@ export const state = {
             faces: new Set()
         },
         editing: {
-            mode: "none" // "cut", "extrude", "delete", "merge", "link"
+            mode: "none", // "cut", "extrude", "delete", "merge", "link"
+            previewPosition: null,
+            cutThreshold: 10
         }
     },
 
