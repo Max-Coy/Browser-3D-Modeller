@@ -97,9 +97,14 @@ export const state = {
         moveGizmo: { // drawing the axis arrows for moving elements
             length: 0.4,
             axes: [
-                {dir:{x:1, y:0, z:0}, color:"red"}, // x - axis
-                {dir:{x:0, y:1, z:0}, color:"green"}, // y
-                {dir:{x:0, y:0, z:1}, color:"blue"} // z
+                {dir:{x:1, y:0, z:0}, color:"rgba(163, 10, 10, 0.6)"}, // x - axis
+                {dir:{x:0, y:1, z:0}, color:"rgba(10, 163, 10, 0.6)"}, // y
+                {dir:{x:0, y:0, z:1}, color:"rgba(10, 10, 163, 0.6"} // z
+            ],
+            selectedAxes: [
+                {dir:{x:1, y:0, z:0}, color:"rgba(255, 0, 0, 1.0)"}, // x - axis
+                {dir:{x:0, y:1, z:0}, color:"rgba(0, 255, 0, 1.0)"}, // y
+                {dir:{x:0, y:0, z:1}, color:"rgba(0, 0, 255, 1.0"} // z
             ],
             capLength: 0.08, // Size of axis cap (arrowhead, o-dot, o-cross)
             lineWidth: 4, // weight of axis line

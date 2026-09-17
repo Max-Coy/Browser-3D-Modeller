@@ -21,7 +21,12 @@ export function drawMoveGizmo(center){
 
     const axisDrawData = [];
 
-    for(const axis of moveGizmo.axes){
+    // for(const axis of moveGizmo.axes){
+    for(let i = 0; i < 3; i++){
+        const axis = interaction.activeAxis === moveGizmo.axes[i]
+            ? moveGizmo.selectedAxes[i]
+            : moveGizmo.axes[i];
+
         const tip3D = {
             x: center.x + axis.dir.x * moveGizmo.length,
             y: center.y + axis.dir.y * moveGizmo.length,

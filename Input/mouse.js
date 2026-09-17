@@ -52,6 +52,7 @@ function handleMouseDown(event){
             mouse.lastLeft.x = mx;
             mouse.lastLeft.y = my;
             if(hasSelection()) interaction.activeAxis = pickGizmoAxis(mx, my);
+            if(interaction.activeAxis !== null) requestAnimationFrame(frame);
             break;
         }case 2: {//Right Mouse Down
             mouse.rightIsDragging = true;
@@ -70,6 +71,7 @@ function handleMouseUp(event){
                 interaction.activeAxis = null;
                 mouse.leftIsDragging = false;
                 mouse.selectionBox = null;
+                requestAnimationFrame(frame);
             }else{
                 elementSelect(event);
             }
